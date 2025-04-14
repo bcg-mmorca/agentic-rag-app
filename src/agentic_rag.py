@@ -37,6 +37,7 @@ INDEX_ID = os.environ.get("INDEX_ID")
 INDEX_ENDPOINT_ID = os.environ.get("INDEX_ENDPOINT_ID")
 AGENT_MODE = os.environ.get("AGENT_MODE")
 MEMORY_ENABLED = os.environ.get("MEMORY_ENABLED").lower() == "true"
+CHROMADB_PERSIST_DIRECTORY = os.environ.get("CHROMADB_PERSIST_DIRECTORY", "./chroma_langchain_db")
 
 embeddings_model = VertexAIEmbeddings(model="text-embedding-005")
 llm = init_chat_model(
@@ -53,6 +54,7 @@ vector_store = VertexAIVectorStore(
     embeddings=embeddings_model,
 ) if PY_ENV == "prod" else ChromaDB(
     embeddings=embeddings_model,
+    persist_directory=CHROMADB_PERSIST_DIRECTORY,
     collection_name="js_code_collection",
 )
 

@@ -35,7 +35,6 @@ def generate_reply_prompt(query: str, context: str):
         And, If it is in English, just use the context as it is.
         If there is no context related to the user question, say that you don't know.
         And your reply should be in English.
-        Also, include the context in your reply.
         \n\n
         """,
     )
@@ -58,7 +57,7 @@ def improve_question_prompt(query: str):
         content=f"""\n 
         Look at the input and try to reason about the underlying semantic intent / meaning.\n 
         Here is the initial question:\n\n{query}\n\n
-        Formulate an improved question: """,
+        Formulate an improved question that is more specific and clear.\n""",
     )
 
 def grade_relevance_prompt(query: str, context: str):
