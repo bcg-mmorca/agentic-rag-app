@@ -20,7 +20,7 @@ class ProcessRepository(BaseModel):
     path: str
 
 # Load environment variables from a file(default: .env)
-load_dotenv("/secrets/.env")
+# load_dotenv("/secrets/.env")
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
 LOCATION = os.environ.get("LOCATION")
