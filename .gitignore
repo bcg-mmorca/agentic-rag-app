@@ -1,0 +1,10 @@
+.env
+service-account-key.json
+*.log
+
+.venv
+chroma_langchain_db
+**/__pycache__
+.pytest_cache
+
+*.egg-info

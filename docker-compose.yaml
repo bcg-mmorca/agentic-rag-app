@@ -1,0 +1,10 @@
+services:
+  rag-genai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000" # Map container port 4000 to host port 4000
+    volumes:
+      - ./chroma_langchain_db:/chroma_langchain_db # Persist vector store data, only for dev environment
+      - .:/secrets # Mount secrets directory

@@ -1,0 +1,11 @@
+graph TD
+    A[Code Repositories] -->|Initial Load| B[Document Processor]
+    B -->|Chunks| C[Vector Store]
+    D[Code Changes] -->|Webhooks| B
+    E[User] -->|Query| F[API Gateway]
+    F -->|Request| G[RAG Service]
+    G -->|Embedding Query| C
+    C --> |Context| G
+    G -->|Context + Query| H[Google Vertex AI]
+    H -->|Response| G
+    G -->|Answer| E

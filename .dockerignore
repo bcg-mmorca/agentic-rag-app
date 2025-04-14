@@ -1,0 +1,5 @@
+Dockerfile
+docker-compose.yml
+*.png
+*.env
+service-account-key.json
