@@ -1,7 +1,7 @@
 import TypingIndicator from '@/components/TypingIndicator';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'; // Example theme
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Message } from '@/types/chat';
 
 interface ChatMessagesProps {
@@ -34,14 +34,16 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
               {/* Render Markdown with syntax highlighting */}
               <ReactMarkdown
                 components={{
-                  code({ className, children, ...props }) {
+                  code(props) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { className, children, node, style, ref, ...rest } = props;
                     const match = /language-(\w+)/.exec(className || '');
                     return match ? (
                       <SyntaxHighlighter
-                        style={oneDark} // Choose a theme
+                        style={oneDark}
                         language={match[1]}
                         PreTag="div"
-                        {...props}
+                        {...rest}
                       >
                         {String(children).replace(/\n$/, '')}
                       </SyntaxHighlighter>

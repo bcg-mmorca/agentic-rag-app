@@ -70,7 +70,7 @@ export default function Home() {
       {/* Chat header */}
       <header className="sticky top-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-4">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">BCG-AI Chat</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Chat-BCG</h1>
           <div className="relative">
             <FileUpload isUploading={isUploading} handleFileUpload={handleFileUpload} />
           </div>
