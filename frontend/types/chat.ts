@@ -10,3 +10,9 @@ export interface ChatState {
   isLoading: boolean;
   error: string | null;
 }
+
+export interface AssistantResponse {
+  question: string;
+  answer: string;
+  source_documents: string[];
+}

@@ -1,6 +1,6 @@
 'use server';
 
-import { Message } from "@/types/chat";
+import { AssistantResponse } from "@/types/chat";
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
@@ -30,10 +30,11 @@ export async function askAssistant(query: string) {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to get assistant response');
+    const res = await response.text();
+    throw new Error(`Failed to get assistant response: ${res}`);
   }
 
   const reply = await response.json();
-
-  return reply as Message;
+  
+  return reply as AssistantResponse;
 }
