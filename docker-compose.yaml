@@ -8,7 +8,7 @@ services:
     environment:
       - CHROMADB_PERSIST_DIRECTORY=/chroma_langchain_db # Directory for ChromaDB persistence
     volumes:
-      - /chormadb/chroma_langchain_db:/chroma_langchain_db # Persist vector store data, only for dev environment
+      - ./chroma_langchain_db:/chroma_langchain_db # Persist vector store data, only for dev environment
       - .:/secrets # Mount secrets directory
 
   chat-frontend:
@@ -20,5 +20,6 @@ services:
     environment:
       - NODE_ENV=production
       - BACKEND_URL=http://rag-genai:4000
+      - BODY_SIZE_LIMIT=50
     depends_on:
       - rag-genai
