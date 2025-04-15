@@ -1,5 +1,16 @@
+.git*
 Dockerfile
 docker-compose.yml
 *.png
 *.env
-service-account-key.json
+service-account-key*.json
+
+resources
+tests
+
+chroma_*
+.venv
+.pytest_cache
+**/__pycache__
+
+frontend

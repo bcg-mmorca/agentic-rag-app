@@ -5,6 +5,20 @@ services:
       dockerfile: Dockerfile
     ports:
       - "4000:4000" # Map container port 4000 to host port 4000
+    environment:
+      - CHROMADB_PERSIST_DIRECTORY=/chroma_langchain_db # Directory for ChromaDB persistence
     volumes:
-      - ./chroma_langchain_db:/chroma_langchain_db # Persist vector store data, only for dev environment
+      - /chormadb/chroma_langchain_db:/chroma_langchain_db # Persist vector store data, only for dev environment
       - .:/secrets # Mount secrets directory
+
+  chat-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - BACKEND_URL=http://rag-genai:4000
+    depends_on:
+      - rag-genai
