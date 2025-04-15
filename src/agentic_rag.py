@@ -39,6 +39,10 @@ AGENT_MODE = os.environ.get("AGENT_MODE")
 MEMORY_ENABLED = os.environ.get("MEMORY_ENABLED").lower() == "true"
 CHROMADB_PERSIST_DIRECTORY = os.environ.get("CHROMADB_PERSIST_DIRECTORY", "./chroma_langchain_db")
 
+print(f"CHROMADB_PERSIST_DIRECTORY: {CHROMADB_PERSIST_DIRECTORY}")
+contents = os.listdir(CHROMADB_PERSIST_DIRECTORY)
+print(contents)
+
 embeddings_model = VertexAIEmbeddings(model="text-embedding-005")
 llm = init_chat_model(
     "gemini-2.0-flash-001",
@@ -111,18 +115,6 @@ def agent(state: MessagesState):
 
     llm_with_tools = llm.bind_tools([retriever])
     response = llm_with_tools.invoke(state["messages"][0].content)
-
-    tool_calls =[
-        {
-            "name": "retriever",
-            "args": {"query": state["messages"][0].content},
-            "id": "tool_call_id_1234abced",
-            "type": "tool_call",
-        }
-    ]
-    response.tool_calls = tool_calls
-
-    # MessagesState appends messages to state instead of overwriting
     return {"messages": [response]}
 
 def generate_text(state: MessagesState):
@@ -158,34 +150,19 @@ def rewrite(state: MessagesState):
     return {"messages": [response]}
 
 # TODO: Include this in the workflow
-def generate_with_conversation(state: MessagesState):
-    """Generate answer."""
+def generate_with_history(state: MessagesState):
+    """Generate answer with chat history."""
 
-    # Get previously generated ToolMessages
-    recent_tool_messages = []
-    for message in reversed(state["messages"]):
-        if message.type == "tool":
-            recent_tool_messages.append(message)
-        else:
-            break
-    tool_messages = recent_tool_messages[::-1]
+    tools_history = _tools_recent_history(state)
+    chat_history = _chat_history(state)
 
-    prev_tool_context = "\n\n".join(doc.content for doc in tool_messages)
-    msg_with_prev_tool_context = generate_js_code_prompt(
+    msg = generate_reply_prompt(
         query=state["messages"][0].content,
-        context=prev_tool_context,
+        context=tools_history,
     )
 
-    # Get previously generated messages except tool messages
-    conversation_messages = [
-        message
-        for message in state["messages"]
-        if message.type in ("human", "system")
-        or (message.type == "ai" and not message.tool_calls)
-    ]
-
     # Feed llm with the combined messages from memory
-    response = llm.invoke([msg_with_prev_tool_context] + conversation_messages)
+    response = llm.invoke([msg] + chat_history)
 
     return {"messages": [response]}
 
@@ -203,6 +180,35 @@ def execute(state: MessagesState):
         print(error_message)
         return {"messages": [HumanMessage(content=error_message)]}
 
+def dummy_state(state: MessagesState):
+    """Empty state for the workflow."""
+
+    return state
+
+def _tools_recent_history(state: MessagesState):
+    """Get recent ToolMessages."""
+
+    recent_tool_messages = []
+    for message in reversed(state["messages"]):
+        if message.type == "tool":
+            recent_tool_messages.append(message)
+        else:
+            break
+
+    return "\n\n".join(doc.content for doc in recent_tool_messages[::-1])
+
+def _chat_history(state: MessagesState):
+    """Get chat history."""
+
+    chat_history = [
+        message
+        for message in state["messages"]
+        if message.type in ("human", "system")
+        or (message.type == "ai" and not message.tool_calls)
+    ]
+
+    return chat_history
+
 def build_js_code_agent():
     """Create langgraph workflow for js code agent."""
 
@@ -212,7 +218,7 @@ def build_js_code_agent():
     workflow.add_node("rewrite", rewrite)
     workflow.add_node("generate", generate_js_code)
     workflow.add_node("execute", execute)
-    workflow.add_node("grade_documents", grade_documents)
+    workflow.add_node("dummy_state", dummy_state)
 
     workflow.add_edge(START, "agent")
     workflow.add_conditional_edges(
@@ -222,6 +228,10 @@ def build_js_code_agent():
     )
     workflow.add_conditional_edges(
         "retrieve",
+        grade_documents,
+    )
+    workflow.add_conditional_edges(
+        "dummy_state",
         grade_documents,
     )
     workflow.add_edge("rewrite", "agent")
@@ -234,23 +244,24 @@ def build_text_agent():
     """Create langgraph workflow for text agent."""
 
     workflow = StateGraph(MessagesState)
-    # workflow.add_node("translate", translate)
     workflow.add_node("agent", agent)
     workflow.add_node("retrieve", ToolNode([retriever]))
     workflow.add_node("rewrite", rewrite)
     workflow.add_node("generate", generate_text)
-    workflow.add_node("execute", execute)
-    workflow.add_node("grade_documents", grade_documents)
+    workflow.add_node("dummy_state", dummy_state)
 
     workflow.add_edge(START, "agent")
-    # workflow.add_edge("translate", "agent")
     workflow.add_conditional_edges(
         "agent",
         tools_condition,
-        {END: "grade_documents", "tools": "retrieve"},
+        {END: "dummy_state", "tools": "retrieve"},
     )
     workflow.add_conditional_edges(
         "retrieve",
+        grade_documents,
+    )
+    workflow.add_conditional_edges(
+        "dummy_state",
         grade_documents,
     )
     workflow.add_edge("rewrite", "agent")
@@ -279,29 +290,36 @@ def ask_agent(
     # TODO: Check whether conversation history is empty,
     # and fetch conversation history if it is so.
 
-    steps = agent.stream(
-        {"messages": [{"role": "user", "content": query}]},
-        stream_mode="values",
-        config= {
-            "recursion_limit": RECURSION_LIMIT,
-            "configurable": {"thread_id": thread_id},
-        },
-    )
+    try:
+        steps = agent.stream(
+            {"messages": [{"role": "user", "content": query}]},
+            stream_mode="values",
+            config= {
+                "recursion_limit": RECURSION_LIMIT,
+                "configurable": {"thread_id": thread_id},
+            },
+        )
 
-    res = []
-    for step in steps:
-        step["messages"][-1].pretty_print()
-        # Get the last message from the final state
-        res = step
+        res = []
+        for step in steps:
+            step["messages"][-1].pretty_print()
+            # Get the last message from the final state
+            res = step
 
-    # res = agent.invoke(
-    #     {"messages": [{"role": "user", "content": query}]},
-    #     config= {"configurable": {"thread_id": thread_id}},
-    # )
+        # res = agent.invoke(
+        #     {"messages": [{"role": "user", "content": query}]},
+        #     config= {"configurable": {"thread_id": thread_id}},
+        # )
 
-    # TODO: save conversation history to database
+        # TODO: save conversation history to database
 
-    return {"answer": res["messages"][-1].content, "context": []}
+        return {"answer": res["messages"][-1].content, "context": []}
+    except RecursionError as e:
+        print(f"Recursion error: {str(e)}")
+        return {"answer": "Please try again with a simpler and concise question.", "context": []}
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return {"answer": "An error occurred while processing your request.", "context": []}
 
 async def process_repository(path: str) -> int:
     docs = await document_processor.process(path)
