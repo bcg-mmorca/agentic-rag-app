@@ -22,6 +22,9 @@ class ProcessRepository(BaseModel):
 # Load environment variables from a file(default: .env)
 # load_dotenv("/secrets/.env")
 
+print("Starting agent...")
+print("Loading environment variables...")
+
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
 LOCATION = os.environ.get("LOCATION")
 CREDENTIALS_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
@@ -29,6 +32,8 @@ BUCKET_URI = os.environ.get("BUCKET_URI")
 
 # Define the maximum file size (default: 10 MB)
 MAX_FILE_SIZE = int(os.environ.get("MAX_FILE_SIZE", 10)) * 1024 * 1024
+
+print("Authenticating with Vertex AI...")
 
 authenticate_vertex_ai(PROJECT_ID, LOCATION, CREDENTIALS_FILE, BUCKET_URI)
 
@@ -38,6 +43,8 @@ from src.agentic_rag import ask_agent, build_agent, process_repository
 agent = build_agent()
 
 app = FastAPI()
+
+print("Running agent on server...")
 
 @app.post("/ask", response_model=AnswerResponse)
 async def ask(request: QuestionRequest):

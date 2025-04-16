@@ -43,12 +43,17 @@ print(f"CHROMADB_PERSIST_DIRECTORY: {CHROMADB_PERSIST_DIRECTORY}")
 contents = os.listdir(CHROMADB_PERSIST_DIRECTORY)
 print(contents)
 
+print("Creating embeddings model...")
+
 embeddings_model = VertexAIEmbeddings(model="text-embedding-005")
+
+print("Creating chat model...")
 llm = init_chat_model(
     "gemini-2.0-flash-001",
     model_provider="google_vertexai",
 )
 
+print("Creating vector store...")
 vector_store = VertexAIVectorStore(
     project_id=PROJECT_ID,
     region=REGION,
